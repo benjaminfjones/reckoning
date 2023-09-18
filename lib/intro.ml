@@ -46,72 +46,7 @@ let e0 = Add (Mul (Add (Mul (Const 0, Var "x"), Const 1), Const 3), Const 12)
 let%test _ = simplify e0 = Const 15
 
 (* ------------------------------------------------------------------------- *)
-(* Lexing Expressions                                                        *)
-(* ------------------------------------------------------------------------- *)
-
-let matches s =
-  let chars = explode s in
-  fun c -> List.mem c chars
-
-let space = matches " \t\r\n"
-and punctuation = matches "(){}[],"
-and symbolic = matches "~`!@#$%^&*-+=|\\:;<>.?/"
-and numeric = matches "0123456789"
-
-and alphanumeric =
-  matches "abcdefghijklmnopqrstuvwxyz_'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-let rec lexwhile (prop : string -> bool) (inp : string list) :
-    string * string list =
-  match inp with
-  | c :: cs when prop c ->
-      let tok, rest = lexwhile prop cs in
-      (c ^ tok, rest)
-  | _ -> ("", inp)
-
-(* lexer *)
-let rec lex (inp : string list) : string list =
-  match snd (lexwhile space inp) with
-  | [] -> []
-  | c :: cs ->
-      let prop =
-        if alphanumeric c then alphanumeric
-        else if symbolic c then symbolic
-        else fun _ -> false (* for punctuation we stop at one char *)
-      in
-      let tok, rest = lexwhile prop cs in
-      (c ^ tok) :: lex rest
-
-(* lexer example tests *)
-let%test _ =
-  lex (explode "2*((var_1 + x') + 11)")
-  = [ "2"; "*"; "("; "("; "var_1"; "+"; "x'"; ")"; "+"; "11"; ")" ]
-
-let%test _ =
-  lex (explode "if (*p1-- == *p2++) then f() else g()")
-  = [
-      "if";
-      "(";
-      "*";
-      "p1";
-      "--";
-      "==";
-      "*";
-      "p2";
-      "++";
-      ")";
-      "then";
-      "f";
-      "(";
-      ")";
-      "else";
-      "g";
-      "(";
-      ")";
-    ]
-
-(* ------------------------------------------------------------------------- *)
-(* Parsing Expressions                                                       *)
+(* Parsing Arithmetic Expressions                                            *)
 (* ------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------
@@ -154,11 +89,6 @@ and parse_atom (inp : string list) : expression * string list =
       (Const (int_of_string tok), rest)
   | tok :: rest -> (Var tok, rest)
   | _ -> failwith "expected atom"
-
-(* Wrap a parser function along with the lexer *)
-let make_parser pfn inp =
-  let toks = lex (explode inp) in
-  match pfn toks with e, [] -> e | _ -> failwith "unexpected trailing input"
 
 let expression_parser = make_parser parse_expression
 
