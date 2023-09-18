@@ -108,10 +108,13 @@ let%test _ =
 
 (* Pretty print an expression.
 
-   Internally, precedence is used to parenthesize sub-expressions. Precendence
-   table is:
-   - Add: 2
-   - Mul: 4
+    Internally, precedence is used to parenthesize sub-expressions. Precendence
+    table is:
+    - Add: 2
+    - Mul: 4
+
+   Slightly increased parent precendence is used to avoid overly parenthesizing
+   right-associated terms.
 *)
 let string_of_expression (expr : expression) : string =
   let paren s = "(" ^ s ^ ")" in

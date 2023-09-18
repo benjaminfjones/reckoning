@@ -19,12 +19,14 @@ let id x = x
 (* Explosion and implosion of strings.                                       *)
 (* ------------------------------------------------------------------------- *)
 
+(* Explode a string into a list of single-char strings *)
 let explode s =
   let rec exap n l =
     if n < 0 then l else exap (n - 1) (String.sub s n 1 :: l)
   in
   exap (String.length s - 1) []
 
+(* Inverse of `explode` *)
 let implode l = List.fold_right ( ^ ) l ""
 
 (* ------------------------------------------------------------------------- *)
@@ -91,9 +93,9 @@ let union =
 
 (* Lexing Expressions                                                        *)
 
-let matches s =
-  let chars = explode s in
-  fun c -> List.mem c chars
+let matches (parent_str : string) (char : string) =
+  let chars = explode parent_str in
+  List.mem char chars
 
 let space = matches " \t\r\n"
 and punctuation = matches "(){}[],"
