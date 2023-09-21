@@ -239,3 +239,4 @@ let rec overatoms f fm b =
 
 (* Special case of a union of the results of a function over the atoms *)
 let atom_union f fm = setify (overatoms (fun h t -> f h @ t) fm [])
+let atoms fm = atom_union (fun a -> [ a ]) fm
