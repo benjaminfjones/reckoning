@@ -124,6 +124,12 @@ let tautology fm = onallvaluations (eval fm) fm (fun _ -> false) (atoms fm)
 let unsatisfiable fm = tautology (mk_not fm)
 let satisfiable fm = not (unsatisfiable fm)
 
+(* Substitute a prop formula for an atomic variable.
+ *
+ * `subfn` is a finite partial function from a prop atom to a prop formula
+ *)
+let psubst subfn = onatoms (fun p -> tryapplyd subfn p (Atom p))
+
 (* ------------------------------------------------------------------------- *)
 (* Tests                                                                     *)
 (* ------------------------------------------------------------------------- *)
@@ -277,6 +283,11 @@ let%test "satisfiable: p or q implies stuff" =
 
 let%test "tautology: p or q and not (p and q)" =
   tautology (pp "(p \\/ q) /\\ ~(p /\\ q) ==> (~p <=> q)")
+
+(* Substitution tests                                                        *)
+
+let%test "psubst tautology" =
+  tautology (psubst (P "p" |=> pp "p /\\ q") (pp "p /\\ q <=> q /\\ p"))
 
 (* ------------------------------------------------------------------------- *)
 (* Failed attempt at setting up a PPX, in-module, for parsing prop formulas  *)
