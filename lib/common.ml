@@ -264,6 +264,7 @@ let ran f = setify (foldl (fun a _x y -> y :: a) [] f)
 (* Application.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
+(* FPF application with a function to apply on failure *)
 let applyd =
   let rec apply_listd l d x =
     match l with
@@ -283,10 +284,16 @@ let applyd =
     in
     look f
 
+(* FPF application with possible failure *)
 let apply f = applyd f (fun _ -> failwith "apply")
+
+(* FPF application with default value upon failure *)
 let tryapplyd f a d = applyd f (fun _ -> d) a
+
+(* FPF application with empty list upon failure *)
 let tryapplyl f x = tryapplyd f x []
 
+(* Is the FPF defined at `x`? *)
 let defined f x =
   try
     apply f x;
@@ -297,6 +304,7 @@ let defined f x =
 (* Undefinition.                                                             *)
 (* ------------------------------------------------------------------------- *)
 
+(* Remove the mapping for the given domain element *)
 let undefine =
   let rec undefine_list x l =
     match l with
@@ -333,6 +341,7 @@ let undefine =
 (* Redefinition and combination.                                             *)
 (* ------------------------------------------------------------------------- *)
 
+(* Redefine an FPF with a new point mapping, combine FPFs in order *)
 let ( |-> ), combine =
   let newbranch p1 t1 p2 t2 =
     let zp = p1 lxor p2 in
@@ -446,6 +455,7 @@ let ( |=> ) x y = (x |-> y) undefined
 (* Idiom for a mapping zipping domain and range lists.                       *)
 (* ------------------------------------------------------------------------- *)
 
+(* Construct a FPF from a pair of lists [domain elts] [values] *)
 let fpf xs ys = itlist2 ( |-> ) xs ys undefined
 
 (* ------------------------------------------------------------------------- *)
