@@ -284,7 +284,40 @@ let%test "satisfiable: p or q implies stuff" =
 let%test "tautology: p or q and not (p and q)" =
   tautology (pp "(p \\/ q) /\\ ~(p /\\ q) ==> (~p <=> q)")
 
-(* Substitution tests                                                        *)
+(* Surprising tautologies, including Dijkstra's Golden Rule *)
+
+let%test "tautology: counter intuitive" =
+  tautology (pp "(p ==> q) \\/ (q ==> p)")
+
+let%test "tautology: Dijkstra Scholten" =
+  tautology (pp "p \\/ (q <=> r) <=> (p \\/ q <=> p \\/ r)")
+
+(* "Golden Rule" *)
+let%test "tautology: golden rule 1" =
+  tautology (pp "p /\\ q <=> ((p <=> q) <=> p \\/ q)")
+
+let%test "tautology: contrapositive 1" =
+  tautology (pp "(p ==> q) <=> (~q ==> ~p)")
+
+let%test "tautology: contrapositive 2" =
+  tautology (pp "(p ==> ~q) <=> (q ==> ~p)")
+
+let%test "common fallacy: implies not symmetric" =
+  not (tautology (pp "(p ==> q) <=> (q ==> p)"))
+
+(* Some logical equivalences allowing elimination of connectives *)
+
+let%test "eliminate logical connectives: {==>, false} are adequate" =
+  List.for_all tautology
+    [
+      pp "true <=> false ==> false";
+      pp "~p <=> p ==> false";
+      pp "p /\\ q <=> (p ==> q ==> false) ==> false";
+      pp "p \\/ q <=> (p ==> false) ==> q";
+      pp "(p <=> q) <=> ((p ==> q) ==> (q ==> p) ==> false) ==> false";
+    ]
+
+(* Substitution tests *)
 
 let%test "psubst tautology" =
   tautology (psubst (P "p" |=> pp "p /\\ q") (pp "p /\\ q <=> q /\\ p"))
