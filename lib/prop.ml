@@ -117,10 +117,12 @@ let print_truthtable fm =
 (* Decide if a prop formula is a tautology by evaluating it against all
    possible valuations of its atoms.
 
-   The only optimization is that the procedure short-circuts as soon as a valuation
-   is encounterd where `fm` evaluated to `false`.
+   The only optimization is that the procedure short-circuits as soon as a valuation
+   is encountered where `fm` evaluated to `false`.
 *)
 let tautology fm = onallvaluations (eval fm) fm (fun _ -> false) (atoms fm)
+let unsatisfiable fm = tautology (mk_not fm)
+let satisfiable fm = not (unsatisfiable fm)
 
 (* ------------------------------------------------------------------------- *)
 (* Tests                                                                     *)
@@ -255,10 +257,26 @@ let%expect_test "truth table and_comm not quite" =
     true  true  true  | true
     --------------------------- |}]
 
+(* Lots of tautologies *)
+
 let%test "tautology: and_comm" = tautology (pp "p /\\ q <=> q /\\ p")
 
 let%test "not tautology: and_comm mystery variable" =
-  tautology (pp "p /\\ q <=> q /\\ r")
+  not (tautology (pp "p /\\ q <=> q /\\ r"))
+
+let%test "tautology: p or not p" = tautology (pp "p \\/ ~p")
+
+let%test "not tautology: p or q implies p" =
+  not (tautology (pp "p \\/ q ==> p"))
+
+let%test "tautology: p or q implies stuff" =
+  not (tautology (pp "p \\/ q ==> q \\/ (p <=> q)"))
+
+let%test "satisfiable: p or q implies stuff" =
+  satisfiable (pp "p \\/ q ==> q \\/ (p <=> q)")
+
+let%test "tautology: p or q and not (p and q)" =
+  tautology (pp "(p \\/ q) /\\ ~(p /\\ q) ==> (~p <=> q)")
 
 (* ------------------------------------------------------------------------- *)
 (* Failed attempt at setting up a PPX, in-module, for parsing prop formulas  *)

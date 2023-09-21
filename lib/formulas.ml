@@ -179,7 +179,8 @@ let print_qformula pfn fm =
 (* Constructor Aliases                                                       *)
 (* ------------------------------------------------------------------------- *)
 
-let mk_and p q = And (p, q)
+let mk_not p = Not p
+and mk_and p q = And (p, q)
 and mk_or p q = Or (p, q)
 and mk_imp p q = Imp (p, q)
 and mk_iff p q = Iff (p, q)
