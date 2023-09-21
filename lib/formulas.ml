@@ -149,8 +149,8 @@ let print_formula pfn =
         print_string " ";
         print_string v)
       bvs;
-    print_string ".";
-    Format.print_space ();
+    print_string ". ";
+    (* Format.print_space (); *)
     Format.open_box 0;
     aux_print_formula 0 bod;
     Format.close_box ()
@@ -160,7 +160,8 @@ let print_formula pfn =
   and print_infix newpr sym p q =
     aux_print_formula (newpr + 1) p;
     print_string (" " ^ sym);
-    Format.print_space ();
+    (* Format.print_space (); *)
+    print_string " ";
     aux_print_formula newpr q
   in
   aux_print_formula 0
