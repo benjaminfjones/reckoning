@@ -20,22 +20,25 @@ let id x = x
 (* Handy list helpers                                                        *)
 (* ------------------------------------------------------------------------- *)
 
-(* List.iter but with a default value `b` for the empty list *)
-let rec itlist f l b = match l with [] -> b | h :: t -> f h (itlist f t b)
-
-(* List.iter but fails on the empty list *)
+(* List.fold_right but fails on the empty list *)
 let rec end_itlist f l =
   match l with
   | [] -> failwith "end_itlist"
   | [ x ] -> x
   | h :: t -> f h (end_itlist f t)
 
-(* List.iter2 but with a default value `b` for the pair of empty lists *)
-let rec itlist2 f l1 l2 b =
-  match (l1, l2) with
-  | [], [] -> b
-  | h1 :: t1, h2 :: t2 -> f h1 h2 (itlist2 f t1 t2 b)
-  | _ -> failwith "itlist2"
+(* Apply f to all pairs of elements from the two input lists *)
+let rec allpairs f l1 l2 =
+  match l1 with
+  | h1 :: t1 -> List.fold_right (fun x a -> f h1 x :: a) l2 (allpairs f t1 l2)
+  | [] -> []
+
+(* Construct a list of all distinct pairs of list elements (not values) from
+   the input list *)
+let rec distinctpairs l =
+  match l with
+  | x :: t -> List.fold_right (fun y a -> (x, y) :: a) t (distinctpairs t)
+  | [] -> []
 
 (* ------------------------------------------------------------------------- *)
 (* Explosion and implosion of strings.                                       *)
@@ -456,7 +459,7 @@ let ( |=> ) x y = (x |-> y) undefined
 (* ------------------------------------------------------------------------- *)
 
 (* Construct a FPF from a pair of lists [domain elts] [values] *)
-let fpf xs ys = itlist2 ( |-> ) xs ys undefined
+let fpf xs ys = List.fold_right2 ( |-> ) xs ys undefined
 
 (* ------------------------------------------------------------------------- *)
 (* Grab an arbitrary element.                                                *)
