@@ -147,6 +147,7 @@ let psimplify1 fm =
   | Imp (True, p) -> p
   | Imp (p, False) -> Not p
   | Iff (p, True) | Iff (True, p) -> p
+  | Iff (False, False) -> True (* not in the original text *)
   | Iff (p, False) | Iff (False, p) -> Not p
   | _ -> fm
 
