@@ -296,6 +296,29 @@ let rec full_distrib fm =
 (*   print_newline (); *)
 (*   true *)
 
+(* Distribute for the set of sets representation *)
+let pure_distrib s1 s2 = setify (allpairs union s1 s2)
+
+(* Convert to DNF, by transformation, in set of sets form *)
+let rec purednf fm =
+  match fm with
+  | And (p, q) -> pure_distrib (purednf p) (purednf q)
+  | Or (p, q) -> union (purednf p) (purednf q)
+  | _ -> [ [ fm ] ]
+
+let print_pfll ds =
+  let string_of_lit = function
+    | Atom p -> pname p
+    | Not (Atom p) -> "~" ^ pname p
+    | _ -> failwith "not an atom"
+  in
+  let pfl ps = "[" ^ String.concat "; " (List.map string_of_lit ps) ^ "]" in
+  print_string ("[" ^ String.concat "; " (List.map pfl ds) ^ "]")
+
+let%expect_test "purednf" =
+  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
+  [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
+
 (* ------------------------------------------------------------------------- *)
 (* Tests                                                                     *)
 (* ------------------------------------------------------------------------- *)
@@ -565,3 +588,11 @@ let%expect_test "distrib does not produce DNF" =
 let%expect_test "rawdnf does produce DNF" =
   prp (rawdnf nested_and_or);
   [%expect {| <<p /\ q \/ p /\ r /\ s \/ p /\ r /\ t /\ u>> |}]
+
+let%expect_test "purednf" =
+  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
+  [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
+
+let%expect_test "purednf distrib_ex" =
+  print_pfll (purednf distrib_ex);
+  [%expect {| [[p; ~p]; [p; ~r]; [q; ~p]; [q; ~r]; [r; ~p]; [r; ~r]] |}]
