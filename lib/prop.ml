@@ -217,6 +217,84 @@ let dnf fm =
   let atoms = List.map (fun p -> Atom p) pvs in
   list_disj (List.map (mk_lits atoms) satvals)
 
+(* DNF by transformation *)
+
+(* `distrib` assumes the intermediate formulas (the p, q, r in the match) are
+ * already in DNF. Calling distrib once, or even repeatedly calling it does not
+ * result in DNF form in general.
+ *)
+let rec distrib fm =
+  (* print_string "dist: "; *)
+  (* prp fm; *)
+  (* print_newline (); *)
+  match fm with
+  | And (p, Or (q, r)) -> Or (distrib (And (p, q)), distrib (And (p, r)))
+  | And (Or (p, q), r) -> Or (distrib (And (p, r)), distrib (And (q, r)))
+  | _ -> fm
+
+(* In this example, distrib produces DNF *)
+(* let%test "debug" = *)
+(*   let res = distrib (pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)") in *)
+(*   prp res; *)
+(*   print_newline (); *)
+(*   true *)
+
+(* In this example, distrib **does not** produce DNF *)
+(* let%test "debug" = *)
+(*   let res = distrib (pp "(p /\\ (q \\/ (r /\\ (s \\/ (t /\\ u)))))") in *)
+(*   prp res; *)
+(*   print_newline (); *)
+(*   true *)
+
+(* Convert to (ugly, mis-associated) DNF by transformation *)
+let rec rawdnf fm =
+  (* print_string "raw: "; *)
+  (* prp fm; *)
+  (* print_newline (); *)
+  match fm with
+  (* Note the call to distrib occurs with intermediate formulas in DNF *)
+  | And (p, q) -> distrib (And (rawdnf p, rawdnf q))
+  | Or (p, q) -> Or (rawdnf p, rawdnf q)
+  | _ -> fm
+
+(* let%test "debug" = *)
+(*   let res = rawdnf (pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)") in *)
+(*   prp res; *)
+(*   print_newline (); *)
+(*   true *)
+
+(* let%test "debug" = *)
+(*   let res = rawdnf (pp "(p /\\ (q \\/ (r /\\ (s \\/ (t /\\ u)))))") in *)
+(*   prp res; *)
+(*   print_newline (); *)
+(*   true *)
+
+(* This version of distrib fully recurses, making no assumptions about
+ * intermediate sub-formulas.
+ *)
+let rec full_distrib fm =
+  (* print_string "full_dist: "; *)
+  (* prp fm; *)
+  (* print_newline (); *)
+  match fm with
+  | And (p, Or (q, r)) ->
+      Or
+        ( full_distrib (And (full_distrib p, full_distrib q)),
+          full_distrib (And (full_distrib p, full_distrib r)) )
+  | And (Or (p, q), r) ->
+      Or
+        ( full_distrib (And (full_distrib p, full_distrib r)),
+          full_distrib (And (full_distrib q, full_distrib r)) )
+  | _ -> fm
+
+(* on (p \\/ q \\/ r) /\\ (~p \\/ ~r),           full_distrib called 32 times *)
+(* on (p /\\ (q \\/ (r /\\ (s \\/ (t /\\ u))))), full_distrib called 20 times *)
+(* let%test "debug" = *)
+(*   let res = full_distrib (pp "(p /\\ (q \\/ (r /\\ (s \\/ (t /\\ u)))))") in *)
+(*   prp res; *)
+(*   print_newline (); *)
+(*   true *)
+
 (* ------------------------------------------------------------------------- *)
 (* Tests                                                                     *)
 (* ------------------------------------------------------------------------- *)
@@ -462,3 +540,27 @@ let%expect_test "dnf takes a long time" =
 (* dnf is 1255 bytes *)
 
 (* BIG print_truthtable dnf <<p /\ q /\ r /\ s /\ t /\ u \/ u /\ v>>;; *)
+
+(* In this example, distrib produces DNF *)
+let distrib_ex = pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)"
+
+let%expect_test "distrib does produce DNF" =
+  prp (distrib distrib_ex);
+  [%expect
+    {| <<(p /\ ~p \/ q /\ ~p \/ r /\ ~p) \/ p /\ ~r \/ q /\ ~r \/ r /\ ~r>> |}]
+
+(* In this example, distrib produces DNF *)
+let%expect_test "rawdnf distrib_ex" =
+  prp (distrib distrib_ex);
+  [%expect
+    {| <<(p /\ ~p \/ q /\ ~p \/ r /\ ~p) \/ p /\ ~r \/ q /\ ~r \/ r /\ ~r>> |}]
+
+let nested_and_or = pp "(p /\\ (q \\/ (r /\\ (s \\/ (t /\\ u)))))"
+
+let%expect_test "distrib does not produce DNF" =
+  prp (distrib nested_and_or);
+  [%expect {| <<p /\ q \/ p /\ r /\ (s \/ t /\ u)>> |}]
+
+let%expect_test "rawdnf does produce DNF" =
+  prp (rawdnf nested_and_or);
+  [%expect {| <<p /\ q \/ p /\ r /\ s \/ p /\ r /\ t /\ u>> |}]
