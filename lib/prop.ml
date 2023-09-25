@@ -315,9 +315,28 @@ let print_pfll ds =
   let pfl ps = "[" ^ String.concat "; " (List.map string_of_lit ps) ^ "]" in
   print_string ("[" ^ String.concat "; " (List.map pfl ds) ^ "]")
 
-let%expect_test "purednf" =
-  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
-  [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
+(* Compute a CNF representation, in set of sets form.contents
+   
+  Note: the structure is almost exactly the same as `purednf` modulo swapping
+  And/Or by duality.
+  
+  For example:
+
+  purecnf (p /\\ q) => union [[p]] [[q]]
+                    => [[p]; [q]]
+  
+  purecnf (p \\/ q) => pure_distrib [[p]] [[q]]
+                    => setify (allpairs union [[p]] [[q]])
+                    => setify ([[p; q]])
+                    => [[p; q]]
+  
+
+*)
+let rec purecnf fm =
+  match fm with
+  | And (p, q) -> union (purecnf p) (purecnf q)
+  | Or (p, q) -> pure_distrib (purecnf p) (purecnf q)
+  | _ -> [[fm]]
 
 (* ------------------------------------------------------------------------- *)
 (* Tests                                                                     *)
@@ -596,3 +615,15 @@ let%expect_test "purednf" =
 let%expect_test "purednf distrib_ex" =
   print_pfll (purednf distrib_ex);
   [%expect {| [[p; ~p]; [p; ~r]; [q; ~p]; [q; ~r]; [r; ~p]; [r; ~r]] |}]
+
+let%expect_test "purednf" =
+  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
+  [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
+
+let%expect_test "purecnf of and" =
+  print_pfll (purecnf (pp "p /\\ q"));
+  [%expect {| [[p]; [q]] |}]
+
+let%expect_test "purecnf of or" =
+  print_pfll (purecnf (pp "p \\/ q"));
+  [%expect {| [[p; q]] |}]
