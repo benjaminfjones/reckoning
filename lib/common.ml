@@ -40,6 +40,9 @@ let rec distinctpairs l =
   | x :: t -> List.fold_right (fun y a -> (x, y) :: a) t (distinctpairs t)
   | [] -> []
 
+let rec ( -- ) i j =
+  match (i, j) with i, j when j < i -> [] | i, j -> i :: (i + 1 -- j)
+
 (* ------------------------------------------------------------------------- *)
 (* Explosion and implosion of strings.                                       *)
 (* ------------------------------------------------------------------------- *)
@@ -111,6 +114,19 @@ let union =
         else h2 :: union l1 t2
   in
   fun s1 s2 -> union (setify s1) (setify s2)
+
+let rec allsubsets (size : int) (set : 'a list) : 'a list list =
+  let set = setify set in
+  match size with
+  | k when k <= 0 -> [ [] ]
+  | k when k > List.length set -> []
+  | k -> (
+      match set with
+      | [] -> []
+      | s :: rest ->
+          union
+            (List.map (union [ s ]) (allsubsets (k - 1) rest))
+            (allsubsets k rest))
 
 (* ------------------------------------------------------------------------- *)
 (* Common Lexer and Parser helper functions.                                 *)

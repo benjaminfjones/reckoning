@@ -1,2 +1,5 @@
-(test
- (name reckoning))
+(tests
+ (names ramsey)
+ (libraries reckoning)
+ (action
+  (run %{test} -e)))
