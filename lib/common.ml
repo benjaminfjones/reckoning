@@ -486,3 +486,17 @@ let rec choose t =
   | Empty -> failwith "choose: completely undefined function"
   | Leaf (_h, l) -> List.hd l
   | Branch (_b, _p, t1, _t2) -> choose t1
+
+
+(* ------------------------------------------------------------------------- *)
+(* Timing; useful for tests                                                  *)
+(* ------------------------------------------------------------------------- *)
+
+let time f x =
+  let start_time = Sys.time() in
+  let result = f x in
+  let finish_time = Sys.time() in
+  print_string
+    ("CPU time (user): "^(string_of_float(finish_time -. start_time)));
+  print_newline();
+  result;

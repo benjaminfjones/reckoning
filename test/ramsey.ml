@@ -7,12 +7,12 @@ open Reckoning.Formulas
 open Reckoning.Prop
 
 (* Encodes a prop formula expressing the property that
-   there exists a graph of size `n` having either a fully
-   connected subgraph of size `s`, or having a fully disconnected
+   in an arbitrary graph of size `n` there is either a fully
+   connected subgraph of size `s`, or a fully disconnected
    subgraph of size `t`.
 
-   If `ramsey s t n` is satisfiable, then R(s,t), the size of the minimal such
-   graph is  <= n.
+   If `ramsey s t n` is a tautology, then R(s,t), the size of the minimal such
+   graph, is  <= n.
 *)
 let ramsey s t n =
   let verts = 1 -- n in
@@ -34,6 +34,27 @@ let ramsey s t n =
     ( List.fold_right mk_or (List.map comp_connected conn_grps) False,
       List.fold_right mk_or (List.map comp_disconnected dis_grps) False )
 
+(* Prove that R(3, 3) = 6 *)
+(*
+   
+s=3, t=3, n=1: false                
+CPU time (user): 4.2e-05
+s=3, t=3, n=2: false
+CPU time (user): 2e-06
+s=3, t=3, n=3: false
+CPU time (user): 8e-06
+s=3, t=3, n=4: false
+CPU time (user): 2.3e-05
+s=3, t=3, n=5: false
+CPU time (user): 0.000505
+s=3, t=3, n=6: true
+CPU time (user): 0.108766
+
+*)
 let () =
-  if satisfiable (ramsey 3 3 6) then print_string "SAT"
-  else print_string "UNSAT"
+  let ps = List.map (fun n -> (3, 3, n)) (1 -- 6) in
+  let pres (s, t, n) =
+    Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (tautology (ramsey s t n))) in
+  List.iter (fun t -> time pres t) ps
+  (* if satisfiable (ramsey 3 3 6) then print_string "SAT" *)
+  (* else print_string "UNSAT" *)
