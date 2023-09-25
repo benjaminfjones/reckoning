@@ -37,6 +37,7 @@ let ramsey s t n =
 (* Prove that R(3, 3) = 6 *)
 (*
    
+Ramsey instance: R(3, 3) = 6
 s=3, t=3, n=1: false                
 CPU time (user): 4.2e-05
 s=3, t=3, n=2: false
@@ -55,6 +56,5 @@ let () =
   let ps = List.map (fun n -> (3, 3, n)) (1 -- 6) in
   let pres (s, t, n) =
     Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (tautology (ramsey s t n))) in
+  print_endline "Ramsey instance: R(3, 3) = 6\n";
   List.iter (fun t -> time pres t) ps
-  (* if satisfiable (ramsey 3 3 6) then print_string "SAT" *)
-  (* else print_string "UNSAT" *)
