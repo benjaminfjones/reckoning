@@ -323,6 +323,10 @@ let simpdnf fm =
     (* Filter out subsumed disjuncts *)
     List.filter (fun d -> not (exists (fun d' -> psubset d' d) djs)) djs
 
+(* The ultimate evolution of DNF *)
+let dnf fm =
+  list_disj (List.map list_conj (simpdnf fm))
+
 let print_pfll ds =
   let string_of_lit = function
     | Atom p -> pname p
@@ -354,6 +358,7 @@ let rec purecnf fm =
   | And (p, q) -> union (purecnf p) (purecnf q)
   | Or (p, q) -> pure_distrib (purecnf p) (purecnf q)
   | _ -> [[fm]]
+
 
 
 
@@ -596,6 +601,9 @@ let%expect_test "truth table of previous formula" =
     true  true  true  | false
     --------------------------- |}]
 
+
+(* DNF tests *)
+
 let%expect_test "truthdnf takes a long time" =
   let fm = pp "(p /\\ q /\\ r /\\ s /\\ t /\\ u) \\/ (u /\\ v)" in
   prp (truthdnf fm);
@@ -652,6 +660,16 @@ let%expect_test "simpdnf takes less time?" =
   print_pfll (simpdnf fm);
   [%expect
     {| [[p; q; r; s; t; u]; [u; v]] |}]
+
+let%expect_test "dnf distrib_ex1" =
+  prp (dnf distrib_ex1);
+  [%expect {| <<p /\ ~r \/ q /\ r /\ ~p>> |}]
+
+let%expect_test "dnf distrib_ex2" =
+  prp (dnf distrib_ex2);
+  [%expect {| <<p /\ ~r \/ q /\ ~p \/ q /\ ~r \/ r /\ ~p>> |}]
+
+(* CNF tests *)
 
 let%expect_test "purecnf of and" =
   print_pfll (purecnf (pp "p /\\ q"));
