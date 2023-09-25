@@ -43,6 +43,13 @@ let rec distinctpairs l =
 let rec ( -- ) i j =
   match (i, j) with i, j when j < i -> [] | i, j -> i :: (i + 1 -- j)
 
+(* Predicate combinator for map/filter/etc *)
+let non p x = not (p x)
+
+let rec exists p = function
+  | [] -> false
+  | x :: xs -> if p x then true else exists p xs
+
 (* ------------------------------------------------------------------------- *)
 (* Explosion and implosion of strings.                                       *)
 (* ------------------------------------------------------------------------- *)
