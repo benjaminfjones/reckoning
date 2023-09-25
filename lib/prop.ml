@@ -359,6 +359,18 @@ let rec purecnf fm =
   | Or (p, q) -> pure_distrib (purecnf p) (purecnf q)
   | _ -> [[fm]]
 
+let simpcnf fm =
+  match fm with
+  | False -> [[]]
+  | True -> []
+  | _ ->
+    (* Filter out trivial conjuncts (i.e. ones that are tautologies) *)
+    let cjs = List.filter (non trivial) (purecnf fm) in
+    (* Filter out subsumed conjuncts *)
+    List.filter (fun c -> not (exists (fun c' -> psubset c' c) cjs)) cjs
+
+(* The ultimate evolution of CNF *)
+let cnf fm = list_conj (List.map list_disj (simpcnf fm))
 
 
 
@@ -669,6 +681,11 @@ let%expect_test "dnf distrib_ex2" =
   prp (dnf distrib_ex2);
   [%expect {| <<p /\ ~r \/ q /\ ~p \/ q /\ ~r \/ r /\ ~p>> |}]
 
+let%test "tautology Iff(fm, dnf fm)" =
+  print_endline "\ntautology Iff(fm, dnf fm)";
+  let res = time tautology (Iff (distrib_ex1, dnf distrib_ex1)) in
+  res
+
 (* CNF tests *)
 
 let%expect_test "purecnf of and" =
@@ -678,3 +695,16 @@ let%expect_test "purecnf of and" =
 let%expect_test "purecnf of or" =
   print_pfll (purecnf (pp "p \\/ q"));
   [%expect {| [[p; q]] |}]
+
+let%expect_test "cnf distrib_ex1" =
+  prp (cnf distrib_ex1);
+  [%expect {| <<(p \/ q) /\ (p \/ r) /\ (~p \/ ~r)>> |}]
+
+let%expect_test "cnf distrib_ex2" =
+  prp (cnf distrib_ex2);
+  [%expect {| <<(p \/ q \/ r) /\ (~p \/ ~r)>> |}]
+
+let%test "tautology Iff(fm, cnf fm)" =
+  print_endline "\ntautology Iff(fm, cnf fm)";
+  let res = time tautology (Iff (distrib_ex1, cnf distrib_ex1)) in
+  res

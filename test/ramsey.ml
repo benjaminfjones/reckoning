@@ -56,5 +56,5 @@ let () =
   let ps = List.map (fun n -> (3, 3, n)) (1 -- 6) in
   let pres (s, t, n) =
     Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (tautology (ramsey s t n))) in
-  print_endline "Ramsey instance: R(3, 3) = 6\n";
+  print_endline "\nRamsey instance: R(3, 3) = 6\n";
   List.iter (fun t -> time pres t) ps
