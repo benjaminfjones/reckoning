@@ -122,6 +122,7 @@ let union =
   in
   fun s1 s2 -> union (setify s1) (setify s2)
 
+(* Return a list of all subsets of given size. *)
 let rec allsubsets (size : int) (set : 'a list) : 'a list list =
   let set = setify set in
   match size with
@@ -134,6 +135,41 @@ let rec allsubsets (size : int) (set : 'a list) : 'a list list =
           union
             (List.map (union [ s ]) (allsubsets (k - 1) rest))
             (allsubsets k rest))
+
+(* Setify the input lists and return their intersection *)
+let intersect l1 l2 =
+  let rec aux l1 l2 =
+    match (l1, l2) with
+    | [], _ -> []
+    | _, [] -> []
+    | (h1 :: t1 as l1), (h2 :: t2 as l2) ->
+        if h1 = h2 then h1 :: aux t1 t2
+        else if h1 < h2 then aux t1 l2
+        else aux l1 t2
+  in
+  aux (setify l1) (setify l2)
+
+(* Strict subset predicate *)
+let subset l1 l2 =
+  let rec aux l1 l2 =
+    match (l1, l2) with
+    | _, [] -> false (* order matters in the first two match arms *)
+    | [], _ -> true
+    | h1 :: t1, h2 :: t2 ->
+        if h1 = h2 then aux t1 t2 else if h1 < h2 then false else aux l1 t2
+  in
+  aux (setify l1) (setify l2)
+
+(* Partial subset *)
+let psubset l1 l2 =
+  let rec aux l1 l2 =
+    match (l1, l2) with
+    | _, [] -> false
+    | [], _ -> true
+    | h1 :: t1, h2 :: t2 ->
+        if h1 = h2 then aux t1 t2 else if h1 < h2 then false else aux l1 t2
+  in
+  aux (setify l1) (setify l2)
 
 (* ------------------------------------------------------------------------- *)
 (* Common Lexer and Parser helper functions.                                 *)
@@ -494,16 +530,15 @@ let rec choose t =
   | Leaf (_h, l) -> List.hd l
   | Branch (_b, _p, t1, _t2) -> choose t1
 
-
 (* ------------------------------------------------------------------------- *)
 (* Timing; useful for tests                                                  *)
 (* ------------------------------------------------------------------------- *)
 
 let time f x =
-  let start_time = Sys.time() in
+  let start_time = Sys.time () in
   let result = f x in
-  let finish_time = Sys.time() in
+  let finish_time = Sys.time () in
   print_string
-    ("CPU time (user): "^(string_of_float(finish_time -. start_time)));
-  print_newline();
-  result;
+    ("CPU time (user): " ^ string_of_float (finish_time -. start_time));
+  print_newline ();
+  result
