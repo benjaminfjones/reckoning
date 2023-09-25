@@ -212,7 +212,7 @@ let rec allsatvaluations subfn v fms =
  * DNF is computed via truth table enumeration. Worst-case complexity is
  * O(2^num_atoms) ~= O(2^size_formula) .
  *)
-let dnf fm =
+let truthdnf fm =
   let pvs = atoms fm in
   let satvals = allsatvaluations (eval fm) (fun _ -> false) pvs in
   let atoms = List.map (fun p -> Atom p) pvs in
@@ -306,6 +306,23 @@ let rec purednf fm =
   | Or (p, q) -> union (purednf p) (purednf q)
   | _ -> [ [ fm ] ]
 
+(* Determine if the disjuction of literals is trivial, i.e. contains both p and ~p for
+   some atomic prop p.
+*)
+let trivial lits =
+  let pos, neg = List.partition positive lits in
+  intersect pos (List.map negate neg) <> []
+
+let simpdnf fm =
+  match fm with
+  | False -> []
+  | True -> [[]]
+  | _ ->
+    (* Filter out trivial disjuncts *)
+    let djs = List.filter (non trivial) (purednf fm) in
+    (* Filter out subsumed disjuncts *)
+    List.filter (fun d -> not (exists (fun d' -> psubset d' d) djs)) djs
+
 let print_pfll ds =
   let string_of_lit = function
     | Atom p -> pname p
@@ -338,9 +355,13 @@ let rec purecnf fm =
   | Or (p, q) -> pure_distrib (purecnf p) (purecnf q)
   | _ -> [[fm]]
 
-(* ------------------------------------------------------------------------- *)
+
+
+(* ========================================================================= *)
+(* ========================================================================= *)
 (* Tests                                                                     *)
-(* ------------------------------------------------------------------------- *)
+(* ========================================================================= *)
+(* ========================================================================= *)
 
 let%test "eval p and q -> false" =
   not
@@ -555,7 +576,7 @@ let%test "fm <=> nnf fm" =
 
 let%expect_test "dnf corresponds to truth table" =
   let fm = pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)" in
-  prp (dnf fm);
+  prp (truthdnf fm);
   [%expect {| <<~p /\ q /\ r \/ p /\ ~q /\ ~r \/ p /\ q /\ ~r>> |}]
 (* dnf fm = pp "(~p /\\ q /\\ r) \\/ (p /\\ ~q /\\ ~r) \\/ (p /\\ q /\\ ~r)" *)
 
@@ -575,26 +596,27 @@ let%expect_test "truth table of previous formula" =
     true  true  true  | false
     --------------------------- |}]
 
-let%expect_test "dnf takes a long time" =
+let%expect_test "truthdnf takes a long time" =
   let fm = pp "(p /\\ q /\\ r /\\ s /\\ t /\\ u) \\/ (u /\\ v)" in
-  prp (dnf fm);
+  prp (truthdnf fm);
   [%expect
     {| <<~p /\ ~q /\ ~r /\ ~s /\ ~t /\ u /\ v \/ ~p /\ ~q /\ ~r /\ ~s /\ t /\ u /\ v \/ ~p /\ ~q /\ ~r /\ s /\ ~t /\ u /\ v \/ ~p /\ ~q /\ ~r /\ s /\ t /\ u /\ v \/ ~p /\ ~q /\ r /\ ~s /\ ~t /\ u /\ v \/ ~p /\ ~q /\ r /\ ~s /\ t /\ u /\ v \/ ~p /\ ~q /\ r /\ s /\ ~t /\ u /\ v \/ ~p /\ ~q /\ r /\ s /\ t /\ u /\ v \/ ~p /\ q /\ ~r /\ ~s /\ ~t /\ u /\ v \/ ~p /\ q /\ ~r /\ ~s /\ t /\ u /\ v \/ ~p /\ q /\ ~r /\ s /\ ~t /\ u /\ v \/ ~p /\ q /\ ~r /\ s /\ t /\ u /\ v \/ ~p /\ q /\ r /\ ~s /\ ~t /\ u /\ v \/ ~p /\ q /\ r /\ ~s /\ t /\ u /\ v \/ ~p /\ q /\ r /\ s /\ ~t /\ u /\ v \/ ~p /\ q /\ r /\ s /\ t /\ u /\ v \/ p /\ ~q /\ ~r /\ ~s /\ ~t /\ u /\ v \/ p /\ ~q /\ ~r /\ ~s /\ t /\ u /\ v \/ p /\ ~q /\ ~r /\ s /\ ~t /\ u /\ v \/ p /\ ~q /\ ~r /\ s /\ t /\ u /\ v \/ p /\ ~q /\ r /\ ~s /\ ~t /\ u /\ v \/ p /\ ~q /\ r /\ ~s /\ t /\ u /\ v \/ p /\ ~q /\ r /\ s /\ ~t /\ u /\ v \/ p /\ ~q /\ r /\ s /\ t /\ u /\ v \/ p /\ q /\ ~r /\ ~s /\ ~t /\ u /\ v \/ p /\ q /\ ~r /\ ~s /\ t /\ u /\ v \/ p /\ q /\ ~r /\ s /\ ~t /\ u /\ v \/ p /\ q /\ ~r /\ s /\ t /\ u /\ v \/ p /\ q /\ r /\ ~s /\ ~t /\ u /\ v \/ p /\ q /\ r /\ ~s /\ t /\ u /\ v \/ p /\ q /\ r /\ s /\ ~t /\ u /\ v \/ p /\ q /\ r /\ s /\ t /\ u /\ ~v \/ p /\ q /\ r /\ s /\ t /\ u /\ v>> |}]
 (* dnf is 1255 bytes *)
 
 (* BIG print_truthtable dnf <<p /\ q /\ r /\ s /\ t /\ u \/ u /\ v>>;; *)
 
+let distrib_ex1 = pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"
 (* In this example, distrib produces DNF *)
-let distrib_ex = pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)"
+let distrib_ex2 = pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)"
 
 let%expect_test "distrib does produce DNF" =
-  prp (distrib distrib_ex);
+  prp (distrib distrib_ex2);
   [%expect
     {| <<(p /\ ~p \/ q /\ ~p \/ r /\ ~p) \/ p /\ ~r \/ q /\ ~r \/ r /\ ~r>> |}]
 
 (* In this example, distrib produces DNF *)
 let%expect_test "rawdnf distrib_ex" =
-  prp (distrib distrib_ex);
+  prp (distrib distrib_ex2);
   [%expect
     {| <<(p /\ ~p \/ q /\ ~p \/ r /\ ~p) \/ p /\ ~r \/ q /\ ~r \/ r /\ ~r>> |}]
 
@@ -608,17 +630,28 @@ let%expect_test "rawdnf does produce DNF" =
   prp (rawdnf nested_and_or);
   [%expect {| <<p /\ q \/ p /\ r /\ s \/ p /\ r /\ t /\ u>> |}]
 
-let%expect_test "purednf" =
-  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
+let%expect_test "purednf distrib_ex1" =
+  print_pfll (purednf distrib_ex1);
   [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
 
-let%expect_test "purednf distrib_ex" =
-  print_pfll (purednf distrib_ex);
+let%expect_test "purednf distrib_ex2" =
+  print_pfll (purednf distrib_ex2);
   [%expect {| [[p; ~p]; [p; ~r]; [q; ~p]; [q; ~r]; [r; ~p]; [r; ~r]] |}]
 
-let%expect_test "purednf" =
-  print_pfll (purednf (pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"));
-  [%expect {| [[p; ~p]; [p; ~r]; [q; r; ~p]; [q; r; ~r]] |}]
+let%expect_test "trivial @@ purednf" =
+  print_pfll (List.filter (non trivial) (purednf distrib_ex1));
+  [%expect {| [[p; ~r]; [q; r; ~p]] |}]
+
+let%expect_test "simpdnf distrib_ex1" =
+  print_pfll (simpdnf distrib_ex1);
+  [%expect {| [[p; ~r]; [q; r; ~p]] |}]
+
+let%expect_test "simpdnf takes less time?" =
+  let fm = pp "(p /\\ q /\\ r /\\ s /\\ t /\\ u) \\/ (u /\\ v)" in
+  (* print_pfll (time simpdnf fm); *) (* time = 4e-06 *)
+  print_pfll (simpdnf fm);
+  [%expect
+    {| [[p; q; r; s; t; u]; [u; v]] |}]
 
 let%expect_test "purecnf of and" =
   print_pfll (purecnf (pp "p /\\ q"));
