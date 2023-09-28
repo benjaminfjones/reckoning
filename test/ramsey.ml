@@ -13,6 +13,8 @@ open Reckoning.Prop
 
    If `ramsey s t n` is a tautology, then R(s,t), the size of the minimal such
    graph, is  <= n.
+   
+   Note: R(s, t) <= R(s, t-1) + R(s-1, t)
 *)
 let ramsey s t n =
   let verts = 1 -- n in
@@ -58,3 +60,28 @@ let () =
     Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (tautology (ramsey s t n))) in
   print_endline "\nRamsey instance: R(3, 3) = 6\n";
   List.iter (fun t -> time pres t) ps
+
+(*
+
+utop # time tautology (ramsey 2 4 3);;
+CPU time (user): 1.29999999956e-05
+- : bool = false
+
+==> R(3, 4) <= 6 + 4
+
+utop # time tautology (ramsey 3 4 6);;
+CPU time (user): 0.002881
+- : bool = false
+
+utop # time tautology (ramsey 3 4 7);;
+CPU time (user): 0.435133
+- : bool = false
+
+utop # time tautology (ramsey 3 4 8);;
+CPU time (user): 110.858693
+- : bool = false   
+
+utop # time tautology (ramsey 3 4 9);;
+- killed after 13 hours
+
+*)
