@@ -1,4 +1,4 @@
-(executable
- (public_name reckoning)
- (name main)
+(executables
+ (public_names reckoning ramsey adder)
+ (names main ramsey adder)
  (libraries reckoning))

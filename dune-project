@@ -4,6 +4,8 @@
 
 (generate_opam_files true)
 
+(cram enable)
+
 (source
  (github username/reponame))
 

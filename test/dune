@@ -1,5 +1,6 @@
 (tests
- (names ramsey)
+ (names reckoning)
  (libraries reckoning)
+ (deps %{bin:ramsey} %{bin:adder})
  (action
   (run %{test} -e)))
