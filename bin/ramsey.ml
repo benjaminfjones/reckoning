@@ -59,7 +59,8 @@ let () =
   let pres (s, t, n) =
     Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (tautology (ramsey s t n))) in
   print_endline "\nRamsey instance: R(3, 3) = 6\n";
-  List.iter (fun t -> time pres t) ps
+  (* uncomment for timing *) (* List.iter (fun t -> time pres t) ps *)
+  List.iter (fun t -> pres t) ps
 
 (*
 
