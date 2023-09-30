@@ -316,16 +316,15 @@ let trivial lits =
 let simpdnf fm =
   match fm with
   | False -> []
-  | True -> [[]]
+  | True -> [ [] ]
   | _ ->
-    (* Filter out trivial disjuncts *)
-    let djs = List.filter (non trivial) (purednf fm) in
-    (* Filter out subsumed disjuncts *)
-    List.filter (fun d -> not (exists (fun d' -> psubset d' d) djs)) djs
+      (* Filter out trivial disjuncts *)
+      let djs = List.filter (non trivial) (purednf fm) in
+      (* Filter out subsumed disjuncts *)
+      List.filter (fun d -> not (exists (fun d' -> psubset d' d) djs)) djs
 
 (* The ultimate evolution of DNF *)
-let dnf fm =
-  list_disj (List.map list_conj (simpdnf fm))
+let dnf fm = list_disj (List.map list_conj (simpdnf fm))
 
 let print_pfll ds =
   let string_of_lit = function
@@ -337,42 +336,38 @@ let print_pfll ds =
   print_string ("[" ^ String.concat "; " (List.map pfl ds) ^ "]")
 
 (* Compute a CNF representation, in set of sets form.contents
-   
-  Note: the structure is almost exactly the same as `purednf` modulo swapping
-  And/Or by duality.
-  
-  For example:
 
-  purecnf (p /\\ q) => union [[p]] [[q]]
-                    => [[p]; [q]]
-  
-  purecnf (p \\/ q) => pure_distrib [[p]] [[q]]
-                    => setify (allpairs union [[p]] [[q]])
-                    => setify ([[p; q]])
-                    => [[p; q]]
-  
+   Note: the structure is almost exactly the same as `purednf` modulo swapping
+   And/Or by duality.
 
+   For example:
+
+   purecnf (p /\\ q) => union [[p]] [[q]]
+                     => [[p]; [q]]
+
+   purecnf (p \\/ q) => pure_distrib [[p]] [[q]]
+                     => setify (allpairs union [[p]] [[q]])
+                     => setify ([[p; q]])
+                     => [[p; q]]
 *)
 let rec purecnf fm =
   match fm with
   | And (p, q) -> union (purecnf p) (purecnf q)
   | Or (p, q) -> pure_distrib (purecnf p) (purecnf q)
-  | _ -> [[fm]]
+  | _ -> [ [ fm ] ]
 
 let simpcnf fm =
   match fm with
-  | False -> [[]]
+  | False -> [ [] ]
   | True -> []
   | _ ->
-    (* Filter out trivial conjuncts (i.e. ones that are tautologies) *)
-    let cjs = List.filter (non trivial) (purecnf fm) in
-    (* Filter out subsumed conjuncts *)
-    List.filter (fun c -> not (exists (fun c' -> psubset c' c) cjs)) cjs
+      (* Filter out trivial conjuncts (i.e. ones that are tautologies) *)
+      let cjs = List.filter (non trivial) (purecnf fm) in
+      (* Filter out subsumed conjuncts *)
+      List.filter (fun c -> not (exists (fun c' -> psubset c' c) cjs)) cjs
 
 (* The ultimate evolution of CNF *)
 let cnf fm = list_conj (List.map list_disj (simpcnf fm))
-
-
 
 (* ========================================================================= *)
 (* ========================================================================= *)
@@ -613,7 +608,6 @@ let%expect_test "truth table of previous formula" =
     true  true  true  | false
     --------------------------- |}]
 
-
 (* DNF tests *)
 
 let%expect_test "truthdnf takes a long time" =
@@ -626,6 +620,7 @@ let%expect_test "truthdnf takes a long time" =
 (* BIG print_truthtable dnf <<p /\ q /\ r /\ s /\ t /\ u \/ u /\ v>>;; *)
 
 let distrib_ex1 = pp "(p \\/ q /\\ r) /\\ (~p \\/ ~r)"
+
 (* In this example, distrib produces DNF *)
 let distrib_ex2 = pp "(p \\/ q \\/ r) /\\ (~p \\/ ~r)"
 
@@ -668,10 +663,10 @@ let%expect_test "simpdnf distrib_ex1" =
 
 let%expect_test "simpdnf takes less time?" =
   let fm = pp "(p /\\ q /\\ r /\\ s /\\ t /\\ u) \\/ (u /\\ v)" in
-  (* print_pfll (time simpdnf fm); *) (* time = 4e-06 *)
+  (* print_pfll (time simpdnf fm); *)
+  (* time = 4e-06 *)
   print_pfll (simpdnf fm);
-  [%expect
-    {| [[p; q; r; s; t; u]; [u; v]] |}]
+  [%expect {| [[p; q; r; s; t; u]; [u; v]] |}]
 
 let%expect_test "dnf distrib_ex1" =
   prp (dnf distrib_ex1);
