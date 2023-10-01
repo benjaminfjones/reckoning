@@ -73,8 +73,8 @@ let () =
 
 let () =
   print_endline "\n\nripple 3 DNF foo:";
-  prp (dnf (nnf ripple3))
+  prp (dnf ripple3)
 
 let () =
   print_endline "\n\nripple 3 CNF:";
-  prp (cnf (nnf ripple3))
+  prp (cnf ripple3)

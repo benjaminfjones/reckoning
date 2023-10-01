@@ -319,7 +319,7 @@ let simpdnf fm =
   | True -> [ [] ]
   | _ ->
       (* Filter out trivial disjuncts *)
-      let djs = List.filter (non trivial) (purednf fm) in
+      let djs = List.filter (non trivial) (purednf (nnf fm)) in
       (* Filter out subsumed disjuncts *)
       List.filter (fun d -> not (exists (fun d' -> psubset d' d) djs)) djs
 
@@ -362,7 +362,7 @@ let simpcnf fm =
   | True -> []
   | _ ->
       (* Filter out trivial conjuncts (i.e. ones that are tautologies) *)
-      let cjs = List.filter (non trivial) (purecnf fm) in
+      let cjs = List.filter (non trivial) (purecnf (nnf fm)) in
       (* Filter out subsumed conjuncts *)
       List.filter (fun c -> not (exists (fun c' -> psubset c' c) cjs)) cjs
 
@@ -677,9 +677,7 @@ let%expect_test "dnf distrib_ex2" =
   [%expect {| <<p /\ ~r \/ q /\ ~p \/ q /\ ~r \/ r /\ ~p>> |}]
 
 let%test "tautology Iff(fm, dnf fm)" =
-  print_endline "\ntautology Iff(fm, dnf fm)";
-  let res = time tautology (Iff (distrib_ex1, dnf distrib_ex1)) in
-  res
+  tautology (Iff (distrib_ex1, dnf distrib_ex1))
 
 (* CNF tests *)
 
@@ -700,6 +698,10 @@ let%expect_test "cnf distrib_ex2" =
   [%expect {| <<(p \/ q \/ r) /\ (~p \/ ~r)>> |}]
 
 let%test "tautology Iff(fm, cnf fm)" =
-  print_endline "\ntautology Iff(fm, cnf fm)";
-  let res = time tautology (Iff (distrib_ex1, cnf distrib_ex1)) in
-  res
+  tautology (Iff (distrib_ex1, cnf distrib_ex1))
+
+(* Tseitin transformation of Iff results in 11 logical connectives *)
+let%expect_test "worst case Tseitin transformation" =
+  prp (cnf (pp "(p <=> (q <=> r))"));
+  [%expect
+    {| <<(p \/ q \/ r) /\ (p \/ ~q \/ ~r) /\ (q \/ ~p \/ ~r) /\ (r \/ ~p \/ ~q)>> |}]
