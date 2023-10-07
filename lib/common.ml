@@ -15,6 +15,7 @@
 (* ------------------------------------------------------------------------- *)
 
 let id x = x
+let ( ** ) f g x = f (g x)
 
 (* ------------------------------------------------------------------------- *)
 (* Handy list helpers                                                        *)
@@ -171,6 +172,8 @@ let psubset l1 l2 =
   in
   aux (setify l1) (setify l2)
 
+let unions s = setify (List.fold_left ( @ ) [] s)
+
 (* ------------------------------------------------------------------------- *)
 (* Common Lexer and Parser helper functions.                                 *)
 (* ------------------------------------------------------------------------- *)
@@ -318,6 +321,7 @@ let foldr =
 (* Mapping to sorted-list representation of the graph, domain and range.     *)
 (* ------------------------------------------------------------------------- *)
 
+(* Graph of the function as a set of (domain, range) tuples *)
 let graph f = setify (foldl (fun a x y -> (x, y) :: a) [] f)
 let dom f = setify (foldl (fun a x _y -> x :: a) [] f)
 let ran f = setify (foldl (fun a _x y -> y :: a) [] f)
