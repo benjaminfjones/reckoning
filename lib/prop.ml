@@ -183,6 +183,23 @@ let nnf fm =
   in
   nnf_aux (psimplify fm)
 
+(* Simple negation-pushing; does not eliminate Iff. *)
+let nenf formula =
+  let rec nenf_aux fm =
+    match fm with
+    | Not (Not p) -> nenf_aux p
+    | Not (And (p, q)) -> Or (nenf_aux (Not p), nenf_aux (Not q))
+    | Not (Or (p, q)) -> And (nenf_aux (Not p), nenf_aux (Not q))
+    | Not (Imp (p, q)) -> And (nenf_aux p, nenf_aux (Not q))
+    | Not (Iff (p, q)) -> Iff (nenf_aux p, nenf_aux (Not q))
+    | And (p, q) -> And (nenf_aux p, nenf_aux q)
+    | Or (p, q) -> Or (nenf_aux p, nenf_aux q)
+    | Imp (p, q) -> Or (nenf_aux (Not p), nenf_aux q)
+    | Iff (p, q) -> Iff (nenf_aux p, nenf_aux q)
+    | _ -> fm
+  in
+  nenf_aux (psimplify formula)
+
 let list_conj = function [] -> True | l -> end_itlist mk_and l
 and list_disj = function [] -> False | l -> end_itlist mk_or l
 
@@ -335,6 +352,10 @@ let print_pfll ds =
   let pfl ps = "[" ^ String.concat "; " (List.map string_of_lit ps) ^ "]" in
   print_string ("[" ^ String.concat "; " (List.map pfl ds) ^ "]")
 
+(* ------------------------------------------------------------------------- *)
+(* Conjuctive Normal Form (CNF)                                              *)
+(* ------------------------------------------------------------------------- *)
+
 (* Compute a CNF representation, in set of sets form.contents
 
    Note: the structure is almost exactly the same as `purednf` modulo swapping
@@ -368,6 +389,88 @@ let simpcnf fm =
 
 (* The ultimate evolution of CNF *)
 let cnf fm = list_conj (List.map list_disj (simpcnf fm))
+
+(* ------------------------------------------------------------------------- *)
+(* Definitional Conjuctive Normal Form (Tseitin Transformation)              *)
+(* ------------------------------------------------------------------------- *)
+
+let freshprop n = (Atom (P ("p_" ^ string_of_int n)), n + 1)
+
+(* defcnf_inner and defstep are mutually recursive functions used in the
+   state transformer loop that produces definitional CNF. The state being
+   transformed is the triple (formula, definitions so far, fresh prop index)*)
+let rec defcnf_inner ((fm, _defs, _n) as trip) =
+  (* assumption: `fm` is in NENF form *)
+  match fm with
+  | And (p, q) -> defstep mk_and (p, q) trip
+  | Or (p, q) -> defstep mk_or (p, q) trip
+  | Iff (p, q) -> defstep mk_iff (p, q) trip
+  | _ -> trip
+
+(* perform a definition Tseitin step *)
+and defstep op (p, q) (_fm, defs, n) =
+  let fm1, defs1, n1 = defcnf_inner (p, defs, n) in
+  let fm2, defs2, n2 = defcnf_inner (q, defs1, n1) in
+  let fm' = op fm1 fm2 in
+  try (fst (apply defs2 fm'), defs2, n2)
+  with Failure _ ->
+    let v, n3 = freshprop n2 in
+    (v, (v |-> (fm', Iff (v, fm'))) defs2, n3)
+
+(* Helper function for finding the next unsed prop variable index.
+
+   It returns the max of `n` and the smallest non-negative integer `k` such
+   that `str` is `prefix ^ suffix`, `suffix` represents an int, and
+   `int_of_string suffix <= k`. `n` is the default
+*)
+let max_varindex prefix =
+  let m = String.length prefix in
+  fun str n ->
+    let l = String.length str in
+    if l <= m || String.sub str 0 m <> prefix then n
+    else
+      let s' = String.sub str m (l - m) in
+      if List.for_all numeric (explode s') then Int.max n (int_of_string s')
+      else n
+
+let mk_defcnf fn fm =
+  let fm' = nenf fm in
+  let n = 1 + overatoms (fun p n -> max_varindex "p_" (pname p) n) fm' 0 in
+  let fm'', defs, _ = fn (fm', undefined, n) in
+  let deflist = List.map (snd ** snd) (graph defs) in
+  unions (simpcnf fm'' :: List.map simpcnf deflist)
+
+let defcnf fm = list_conj (List.map list_disj (mk_defcnf defcnf_inner fm))
+
+(* Optimized version of defcnf
+
+   1. preserve outter conjunctive structure: only defcnf the conjuncts
+   2. in a conjunct, leave atomic parts of disjunts alone (do not make new definitions for them)
+*)
+
+(* The state transformer part of `defcnf_inner` above, but without intro'ing new
+   definitions.
+*)
+let subcnf sfn op (p, q) (_fm, defs, n) =
+  let fm1, defs1, n1 = sfn (p, defs, n) in
+  let fm2, defs2, n2 = sfn (q, defs1, n1) in
+  (op fm1 fm2, defs2, n2)
+
+let rec orcnf ((fm, _defs, _n) as trip) =
+  match fm with
+  | Or (p, q) -> subcnf orcnf mk_or (p, q) trip
+  | _ -> defcnf_inner trip
+
+let rec andcnf ((fm, _defs, _n) as trip) =
+  match fm with
+  | And (p, q) -> subcnf andcnf mk_and (p, q) trip
+  | _ -> orcnf trip
+
+(* Optimized defcnf from (prop formula) -> set of sets *)
+let defcnf_opt_sets fm = mk_defcnf andcnf fm
+
+(* Optimized defcnf from (prop formula) -> (prop formula) *)
+let defcnf_opt fm = list_conj (List.map list_disj (defcnf_opt_sets fm))
 
 (* ========================================================================= *)
 (* ========================================================================= *)
@@ -705,3 +808,35 @@ let%expect_test "worst case Tseitin transformation" =
   prp (cnf (pp "(p <=> (q <=> r))"));
   [%expect
     {| <<(p \/ q \/ r) /\ (p \/ ~q \/ ~r) /\ (q \/ ~p \/ ~r) /\ (r \/ ~p \/ ~q)>> |}]
+
+(* NENF of the worst case above *)
+let%expect_test "nenf worst case" =
+  prp (nenf (pp "~(p <=> (q <=> r))"));
+  [%expect {| <<p <=> q <=> ~r>> |}]
+
+(* NENF alone gives CNF in some cases *)
+let%expect_test "nenf is cnf example" =
+  prp (nenf (pp "~(p \\/ q /\\ r)"));
+  [%expect {| <<~p /\ (~q \/ ~r)>> |}]
+
+let defcnf_example1 = pp "(p \\/ (q /\\ ~r)) /\\ s"
+
+let%expect_test "defcnf example 1" =
+  prp (defcnf defcnf_example1);
+  [%expect
+    {| <<(p \/ p_1 \/ ~p_2) /\ (p_1 \/ r \/ ~q) /\ (p_2 \/ ~p) /\ (p_2 \/ ~p_1) /\ (p_2 \/ ~p_3) /\ p_3 /\ (p_3 \/ ~p_2 \/ ~s) /\ (q \/ ~p_1) /\ (s \/ ~p_3) /\ (~p_1 \/ ~r)>> |}]
+
+let%expect_test "defcnf_opt example 1" =
+  prp (defcnf_opt defcnf_example1);
+  [%expect
+    {| <<(p \/ p_1) /\ (p_1 \/ r \/ ~q) /\ (q \/ ~p_1) /\ s /\ (~p_1 \/ ~r)>> |}]
+
+let%test "defcnf ==> defcnf_opt in example 1" =
+  let dcnf = defcnf defcnf_example1 in
+  let dcnf_opt = defcnf_opt defcnf_example1 in
+  tautology (Imp (dcnf, dcnf_opt))
+
+let%test "(defcnf_opt fm) does not imply (defcnf fm" =
+  let dcnf = defcnf defcnf_example1 in
+  let dcnf_opt = defcnf_opt defcnf_example1 in
+  not (tautology (Imp (dcnf_opt, dcnf)))
