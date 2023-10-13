@@ -440,7 +440,8 @@ let mk_defcnf fn fm =
   let deflist = List.map (snd ** snd) (graph defs) in
   unions (simpcnf fm'' :: List.map simpcnf deflist)
 
-let defcnf fm = list_conj (List.map list_disj (mk_defcnf defcnf_inner fm))
+let defcnf_sets fm = mk_defcnf defcnf_inner fm
+let defcnf fm = list_conj (List.map list_disj (defcnf_sets fm))
 
 (* Optimized version of defcnf
 

@@ -1,0 +1,6 @@
+(tests
+ (names reckoning)
+ (libraries reckoning)
+ (deps %{bin:adder})
+ (action
+  (run %{test} -e)))
