@@ -5,6 +5,7 @@
 open Reckoning.Common
 open Reckoning.Formulas
 open Reckoning.Prop
+open Reckoning.Dpll
 
 (* Encodes a prop formula expressing the property that
    in an arbitrary graph of size `n` there is either a fully
@@ -38,9 +39,9 @@ let ramsey s t n =
 
 (* Prove that R(3, 3) = 6 *)
 (*
-   
+
 Ramsey instance: R(3, 3) = 6
-s=3, t=3, n=1: false                
+s=3, t=3, n=1: false
 CPU time (user): 4.2e-05
 s=3, t=3, n=2: false
 CPU time (user): 2e-06
@@ -60,7 +61,7 @@ let () =
     Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n
       (string_of_bool (tautology (ramsey s t n)))
   in
-  print_endline "\nRamsey instance: R(3, 3) = 6\n";
+  print_endline "\nRamsey instance: prove R(3, 3) = 6\n";
   (* uncomment for timing *)
   (* List.iter (fun t -> time pres t) ps *)
   List.iter (fun t -> pres t) ps
@@ -83,9 +84,31 @@ CPU time (user): 0.435133
 
 utop # time tautology (ramsey 3 4 8);;
 CPU time (user): 110.858693
-- : bool = false   
+- : bool = false
 
 utop # time tautology (ramsey 3 4 9);;
 - killed after 13 hours
 
 *)
+
+(* Prove R(3,4) = ??? using the more efficient DP tautology prover *)
+(* This can only be run up to n = 7 with DP. It allocates > 25 GB after 15
+   minutes while trying to prove n=7 *)
+let () =
+  let ps = List.map (fun n -> (3, 4, n)) (1 -- 7) in
+  let pres (s, t, n) =
+    Printf.printf "\n\ns=%d, t=%d, n=%d\n" s t n;
+
+    Printf.printf "time to compute formula: ";
+    let ram = time (ramsey s t) n in
+
+    Printf.printf "time to defcnf_opt: ";
+    let cnf = time defcnf_sets ram in
+
+    Printf.printf "number of varibles: %d\n" (List.length (atoms ram));
+    Printf.printf "number of clauses: %d\n" (List.length cnf);
+    Printf.printf "s=%d, t=%d, n=%d: %s\n" s t n (string_of_bool (dptaut ram))
+  in
+  print_endline
+    "\nRamsey instance: prove R(3, 4) = ???\n===========================\n";
+  List.iter (fun t -> time pres t) ps
