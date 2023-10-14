@@ -5,6 +5,7 @@
 open Reckoning.Common
 open Reckoning.Formulas
 open Reckoning.Prop
+open Reckoning.Dpll
 
 (* ------------------------------------------------------------------------- *)
 (* Half & Full Adders                                                        *)
@@ -211,3 +212,39 @@ let () =
     ("number of variables: " ^ string_of_int (List.length (atoms fm)));
   print_endline "(too large for naive tautology prover)"
 (* ;print_endline (string_of_bool (tautology fm)) *)
+
+(* ------------------------------------------------------------------------- *)
+(* Adder Equivalence Proofs Using the DP algorithm                           *)
+(* ------------------------------------------------------------------------- *)
+
+(* Time: 0.027 s, 63x speedup over tautology! *)
+let () =
+  let fm = mk_adder_test 2 1 in
+  print_endline "\n\ndptaut: equivalence of ripplecarry2 <=> carryselect21";
+  print_endline
+    ("number of variables: " ^ string_of_int (List.length (atoms fm)));
+  print_endline (string_of_bool (time dptaut fm))
+
+(* 31 variables *)
+(* 296 clauses *)
+(* Time: 0.082 s, practically impossible with tautology *)
+let () =
+  let fm = mk_adder_test 3 1 in
+  let ps = defcnf_opt_sets fm in
+  print_endline "\n\ndptaut: equivalence of ripplecarry3 <=> carryselect31";
+  print_endline
+    ("number of variables: " ^ string_of_int (List.length (atoms fm)));
+  print_endline ("number of clauses:   " ^ string_of_int (List.length ps));
+  print_endline (string_of_bool (time dptaut fm))
+
+(* 30 variables *)
+(* 290 clauses *)
+(* Time: 0.076 s, practically impossible with tautology *)
+let () =
+  let fm = mk_adder_test 3 2 in
+  let ps = defcnf_opt_sets fm in
+  print_endline "\n\ndptaut: equivalence of ripplecarry3 <=> carryselect32";
+  print_endline
+    ("number of variables: " ^ string_of_int (List.length (atoms fm)));
+  print_endline ("number of clauses:   " ^ string_of_int (List.length ps));
+  print_endline (string_of_bool (time dptaut fm))

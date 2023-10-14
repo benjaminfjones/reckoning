@@ -66,6 +66,22 @@ let explode s =
 let implode l = List.fold_right ( ^ ) l ""
 
 (* ------------------------------------------------------------------------- *)
+(* Find list member that maximizes or minimizes a function.                  *)
+(* ------------------------------------------------------------------------- *)
+
+(* Optimize an objective function given an ordering on objective values. Fails
+   if the input list is empty *)
+let optimize (ord : 'b -> 'b -> bool) (f : 'a -> 'b) (l : 'a list) : 'a =
+  let obj_vals = List.map (fun x -> (x, f x)) l in
+  fst
+    (end_itlist
+       (fun ((_, y) as p) ((_', y') as p') -> if ord y y' then p else p')
+       obj_vals)
+
+let maximize f l = optimize ( > ) f l
+and minimize f l = optimize ( < ) f l
+
+(* ------------------------------------------------------------------------- *)
 (* Set operations on ordered lists.                                          *)
 (* ------------------------------------------------------------------------- *)
 
@@ -150,6 +166,19 @@ let intersect l1 l2 =
   in
   aux (setify l1) (setify l2)
 
+(* Remove a set from another *)
+let subtract =
+  let rec subaux l1 l2 =
+    match (l1, l2) with
+    | [], _ -> []
+    | l1, [] -> l1
+    | (h1 :: t1 as l1), (h2 :: t2 as l2) ->
+        if h1 = h2 then subaux t1 t2
+        else if h1 < h2 then h1 :: subaux t1 l2
+        else subaux l1 t2
+  in
+  fun s1 s2 -> subaux (setify s1) (setify s2)
+
 (* Strict subset predicate *)
 let subset l1 l2 =
   let rec aux l1 l2 =
@@ -173,6 +202,7 @@ let psubset l1 l2 =
   aux (setify l1) (setify l2)
 
 let unions s = setify (List.fold_left ( @ ) [] s)
+let set_image f s = setify (List.map f s)
 
 (* ------------------------------------------------------------------------- *)
 (* Common Lexer and Parser helper functions.                                 *)

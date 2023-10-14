@@ -72,5 +72,22 @@
   equivalence of ripplecarry3 <=> carryselect32
   number of variables: 30
   (too large for naive tautology prover)
+  
+  
+  dptaut: equivalence of ripplecarry2 <=> carryselect21
+  number of variables: 21
+  true
+  
+  
+  dptaut: equivalence of ripplecarry3 <=> carryselect31
+  number of variables: 31
+  number of clauses:   296
+  true
+  
+  
+  dptaut: equivalence of ripplecarry3 <=> carryselect32
+  number of variables: 30
+  number of clauses:   290
+  true
 
 
