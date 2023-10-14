@@ -93,7 +93,24 @@ utop # time tautology (ramsey 3 4 9);;
 
 (* Prove R(3,4) = ??? using the more efficient DP tautology prover *)
 (* This can only be run up to n = 7 with DP. It allocates > 25 GB after 15
-   minutes while trying to prove n=7 *)
+   minutes while trying to prove n=7
+
+   s=3, t=4, n=8
+   time to compute formula: CPU time (user): 0.000122
+   time to defcnf_opt: CPU time (user): 0.003065
+   number of varibles: 28
+   number of clauses: 1762
+   #clauses: 126
+   #clauses: 165
+   #clauses: 213
+   #clauses: 270
+   #clauses: 336
+   #clauses: 1080
+   #clauses: 6083
+   #clauses: 49089
+   ...
+*)
+
 let () =
   let ps = List.map (fun n -> (3, 4, n)) (1 -- 7) in
   let pres (s, t, n) =
